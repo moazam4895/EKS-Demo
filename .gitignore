@@ -1,0 +1,12 @@
+# Terraform generated — never commit these
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+.DS_Store
+.vscode/
+.idea/
