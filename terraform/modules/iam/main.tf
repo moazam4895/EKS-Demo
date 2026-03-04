@@ -126,7 +126,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       # The "ref:refs/heads/main" part restricts to the main branch only
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:YOUR_GITHUB_USERNAME/YOUR_REPO_NAME:*"]
+      values   = ["repo:moazam4895/EKS-Demo:*"]
     }
   }
 }
