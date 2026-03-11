@@ -1,118 +1,83 @@
-# ============================================================
-# GitHub Actions: Terraform CI/CD for EKS
-# ============================================================
 name: Terraform EKS Pipeline
 
 on:
-  # Run on pull requests to main (plan only)
   pull_request:
     branches: [main]
     paths:
-      - "terraform/**"      # Only trigger if Terraform files changed
-
-  # Run on push to main (plan + apply)
+      - "terraform/**"
   push:
     branches: [main]
     paths:
       - "terraform/**"
-
-  # Allow manual runs from GitHub UI
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action to run (plan or apply or destroy)'
+        description: 'Action to run'
         required: true
         default: 'plan'
         type: choice
-        options:
-          - plan
-          - apply
-          - destroy
+        options: [plan, apply, destroy]
       environment:
-        description: 'Environment to target'
+        description: 'Environment'
         required: true
         default: 'dev'
         type: choice
-        options:
-          - dev
-          - prod
+        options: [dev, prod]
 
-# Sets permissions needed for OIDC token generation
 permissions:
-  id-token: write    # Required for OIDC authentication
-  contents: read     # Required to checkout code
-  pull-requests: write  # Required to comment on PRs
+  id-token: write
+  contents: read
+  pull-requests: write
 
 env:
-  TF_VERSION: "1.7.0"         # Pin Terraform version
-  WORKING_DIR: "./terraform"   # Where your Terraform files live
+  TF_VERSION: "1.7.0"
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+  AWS_ACCOUNT_ID: "935803162418"
+  AWS_DEFAULT_REGION: "us-east-1"
 
 jobs:
   terraform:
-    name: 'Terraform ${{ github.event.inputs.action || (github.event_name == ''push'' && ''apply'' || ''plan'') }}'
+    name: Terraform
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
-
     defaults:
       run:
-        working-directory: ${{ env.WORKING_DIR }}
+        working-directory: ./terraform
 
     steps:
-      # ── Step 1: Checkout the repository ──────────────────────
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # ── Step 2: Configure AWS credentials via OIDC ───────────
-      # No static keys! GitHub sends a JWT to AWS, AWS returns temp creds
-      - name: Configure AWS Credentials (OIDC)
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: GitHubActions-EKS-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
-          # Temp credentials expire after 1 hour (sufficient for most applies)
           role-duration-seconds: 3600
 
-      # ── Step 3: Verify AWS identity (sanity check) ───────────
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
-      # ── Step 4: Install Terraform ─────────────────────────────
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: true  # Wraps terraform to capture outputs
 
-      # ── Step 5: Copy environment backend config ───────────────
-      - name: Copy Environment Backend Config
-        run: |
-          cp environments/${{ env.ENVIRONMENT }}/backend.tf .
-          echo "Using backend config for: ${{ env.ENVIRONMENT }}"
-
-      # ── Step 6: Terraform Init ────────────────────────────────
-      # Downloads providers, configures backend
       - name: Terraform Init
         id: init
         run: |
           terraform init \
-            -backend-config="environments/${{ env.ENVIRONMENT }}/backend.tf"
+            -backend-config="bucket=eks-demo-terraform-state-${{ env.ENVIRONMENT }}-${{ env.AWS_ACCOUNT_ID }}" \
+            -backend-config="key=eks-demo/${{ env.ENVIRONMENT }}/terraform.tfstate" \
+            -backend-config="region=${{ secrets.AWS_REGION }}" \
+            -backend-config="dynamodb_table=eks-demo-terraform-locks-${{ env.ENVIRONMENT }}" \
+            -backend-config="encrypt=true" \
+            -reconfigure
 
-      # ── Step 7: Terraform Format Check ───────────────────────
-      - name: Terraform Format Check
-        id: fmt
-        run: terraform fmt -check -recursive
-        continue-on-error: true  # Don't fail pipeline, just warn
-
-      # ── Step 8: Terraform Validate ────────────────────────────
-      # Checks syntax and config validity without AWS calls
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
 
-      # ── Step 9: Terraform Plan ────────────────────────────────
-      # Shows what WOULD be created/changed/destroyed
       - name: Terraform Plan
         id: plan
         run: |
@@ -123,38 +88,6 @@ jobs:
             -input=false
         continue-on-error: true
 
-      # ── Step 10: Comment Plan on PR ───────────────────────────
-      # Posts the plan as a comment on the pull request
-      - name: Post Plan to PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `## 🔍 Terraform Plan Results
-
-            #### Terraform Init: \`${{ steps.init.outcome }}\`
-            #### Terraform Validate: \`${{ steps.validate.outcome }}\`
-            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
-
-            <details><summary>📋 Show Full Plan</summary>
-
-            \`\`\`
-            ${{ steps.plan.outputs.stdout }}
-            \`\`\`
-            </details>
-
-            *Pushed by: @${{ github.actor }}, Event: ${{ github.event_name }}*`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
-
-      # ── Step 11: Terraform Apply ──────────────────────────────
-      # Only runs on push to main OR manual workflow_dispatch with action=apply
       - name: Terraform Apply
         if: |
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -166,24 +99,6 @@ jobs:
             -input=false \
             tfplan
 
-      # ── Step 12: Save Outputs ─────────────────────────────────
-      - name: Capture Terraform Outputs
-        if: |
-          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
-        run: |
-          echo "## 🎉 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Cluster Info" >> $GITHUB_STEP_SUMMARY
-          terraform output -no-color >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Connect to Cluster" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          terraform output -raw configure_kubectl >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-      # ── Step 13: Terraform Destroy (manual only) ─────────────
       - name: Terraform Destroy
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
         run: |
