@@ -96,7 +96,7 @@ jobs:
             terraform apply \
                -auto-approve \
                -input=false \
-                tfplan
+               tfplan
 
       - name: Terraform Destroy
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
