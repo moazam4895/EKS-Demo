@@ -33,7 +33,6 @@ env:
   TF_VERSION: "1.7.0"
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
   AWS_ACCOUNT_ID: "935803162418"
-  AWS_DEFAULT_REGION: "us-east-1"
 
 jobs:
   terraform:
@@ -86,17 +85,16 @@ jobs:
             -out=tfplan \
             -no-color \
             -input=false
-        continue-on-error: true
 
       - name: Terraform Apply
         if: |
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
-          run: |
-            terraform apply \
-               -auto-approve \
-               -input=false \
-               tfplan
+        run: |
+          terraform apply \
+            -auto-approve \
+            -input=false \
+            tfplan
 
       - name: Terraform Destroy
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
