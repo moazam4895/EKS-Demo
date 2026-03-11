@@ -92,12 +92,11 @@ jobs:
         if: |
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
-        run: |
-          terraform apply \
-            -var-file="environments/${{ env.ENVIRONMENT }}/terraform.tfvars" \
-            -auto-approve \
-            -input=false \
-            tfplan
+          run: |
+            terraform apply \
+               -auto-approve \
+               -input=false \
+                tfplan
 
       - name: Terraform Destroy
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
