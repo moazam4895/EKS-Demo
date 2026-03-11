@@ -1,3 +1,4 @@
+cat > terraform/environments/prod/backend.tf << 'ENDOFFILE'
 terraform {
   backend "s3" {
     bucket         = "eks-demo-terraform-state-prod-935803162418"
@@ -7,3 +8,4 @@ terraform {
     encrypt        = true
   }
 }
+ENDOFFILE

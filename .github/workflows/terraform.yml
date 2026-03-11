@@ -94,7 +94,10 @@ jobs:
       # ── Step 6: Terraform Init ────────────────────────────────
       # Downloads providers, configures backend
       - name: Terraform Init
-        run: terraform init
+        id: init
+        run: |
+          terraform init \
+            -backend-config="environments/${{ env.ENVIRONMENT }}/backend.tf"
 
       # ── Step 7: Terraform Format Check ───────────────────────
       - name: Terraform Format Check
