@@ -151,46 +151,52 @@ resource "aws_iam_role_policy" "github_actions_policy" {
     Statement = [
       {
         Effect = "Allow"
-        Action = [
-          # EKS operations
-          "eks:*",
-          # EC2 for VPC, subnets, security groups
-          "ec2:*",
-          # IAM for creating roles/policies
-          "iam:CreateRole",
-          "iam:DeleteRole",
-          "iam:AttachRolePolicy",
-          "iam:DetachRolePolicy",
-          "iam:PutRolePolicy",
-          "iam:DeleteRolePolicy",
-          "iam:GetRole",
-          "iam:GetRolePolicy",
-          "iam:ListRolePolicies",
-          "iam:ListAttachedRolePolicies",
-          "iam:PassRole",
-          "iam:CreateOpenIDConnectProvider",
-          "iam:DeleteOpenIDConnectProvider",
-          "iam:GetOpenIDConnectProvider",
-          "iam:TagOpenIDConnectProvider",
-          # S3 for Terraform state
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:ListBucket",
-          # DynamoDB for state locking
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          # CloudWatch for logs
-          "logs:CreateLogGroup",
-          "logs:DescribeLogGroups",
-          "logs:PutRetentionPolicy",
-          "logs:DeleteLogGroup",
-          "logs:TagResource",
-          "logs:ListTagsForResource",
-          "logs:ListTagsLogGroup"
-        ]
-        Resource = "*"
+            "Action": [
+                "eks:*",
+                "ec2:*",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:ListRolePolicies",
+                "iam:ListAttachedRolePolicies",
+                "iam:PassRole",
+                "iam:TagRole",
+                "iam:UntagRole",
+                "iam:ListInstanceProfilesForRole",
+                "iam:CreateServiceLinkedRole",
+                "iam:DeleteServiceLinkedRole",
+                "iam:GetServiceLinkedRoleDeletionStatus",
+                "iam:CreateOpenIDConnectProvider",
+                "iam:DeleteOpenIDConnectProvider",
+                "iam:GetOpenIDConnectProvider",
+                "iam:TagOpenIDConnectProvider",
+                "iam:ListOpenIDConnectProviders",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket",
+                "s3:GetBucketVersioning",
+                "s3:GetEncryptionConfiguration",
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+                "logs:CreateLogGroup",
+                "logs:DescribeLogGroups",
+                "logs:PutRetentionPolicy",
+                "logs:DeleteLogGroup",
+                "logs:TagResource",
+                "logs:ListTagsForResource",
+                "logs:ListTagsLogGroup",
+                "logs:CreateLogDelivery",
+                "logs:PutLogEvents"
+            ],        
+	Resource = "*"
       }
     ]
   })
