@@ -33,7 +33,6 @@ env:
   TF_VERSION: "1.7.0"
   ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
   AWS_ACCOUNT_ID: "935803162418"
-  AWS_DEFAULT_REGION: "us-east-1"
 
 jobs:
   terraform:
@@ -86,7 +85,6 @@ jobs:
             -out=tfplan \
             -no-color \
             -input=false
-        continue-on-error: true
 
       - name: Terraform Apply
         if: |
@@ -94,7 +92,6 @@ jobs:
           (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
         run: |
           terraform apply \
-            -var-file="environments/${{ env.ENVIRONMENT }}/terraform.tfvars" \
             -auto-approve \
             -input=false \
             tfplan
