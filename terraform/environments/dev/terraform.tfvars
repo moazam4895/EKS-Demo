@@ -9,7 +9,7 @@ aws_region   = "us-east-1"
 vpc_cidr     = "10.0.0.0/16"
 
 kubernetes_version = "1.29"
-instance_types     = ["t2.micro"]
+instance_types     = ["t3.small"]
 
 # Smaller footprint for dev
 node_desired_size = 2
